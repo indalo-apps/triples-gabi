@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="app-version" content="1.1">
+<meta name="app-version" content="1.2">
 <meta name="theme-color" content="#2f5fd0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1085,6 +1085,42 @@ function drawTrails(){
 function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 
 // ayuda de puntería: sale del balón que tiene en las manos. Transportador, flecha (velocidad) y el principio de la trayectoria
+// calcula el vuelo entero con la misma física del tiro, hasta el primer choque (suelo, aro, tablero u obstáculo)
+function predecir(){
+  const h=handPos(),v=speed(S.force),a=S.angle*Math.PI/180,dt=1/240;
+  let x=h.x,y=h.y,vx=v*Math.cos(a),vy=-v*Math.sin(a),top=[x,y],fin='fuera';const pts=[];
+  for(let i=1;i<=240*4;i++){
+    vy+=G*dt;if(S.wind)vx+=S.wind*dt;x+=vx*dt;y+=vy*dt;
+    if(y<top[1])top=[x,y];
+    if(i%12===0)pts.push([x,y]);                       // un punto cada 0,05 s: más separados donde va más rápido
+    if(y>FLOOR-R){y=FLOOR-R;fin='suelo';break}
+    if(x<-40||x>W+40)break;
+    if(vx>0&&x+R>=BOARD_X&&y>BOARD_TOP-R*.5&&y<BOARD_BOT){fin='choque';break}
+    if(Math.hypot(x-RIM_F,y-RIM_Y)<R+3||Math.hypot(x-RIM_B,y-RIM_Y)<R+3){fin='aro';break}
+    let ob=false;for(const o of S.obst||[])for(const r of o.r){const cx=Math.max(r.x,Math.min(x,r.x+r.w)),cy=Math.max(r.y,Math.min(y,r.y+r.h));if(Math.hypot(x-cx,y-cy)<R)ob=true}
+    if(ob){fin='choque';break}
+  }
+  return{pts,fin,x,y,top};
+}
+// la parábola de puntos, como en Angry Birds: puntos blancos que avanzan, la altura máxima y dónde acaba
+function drawParabola(){
+  const P=predecir(),fase=(S.clock*2)%1;
+  ctx.save();
+  // altura máxima: línea discontinua hasta el suelo
+  const [tx,ty]=P.top;
+  if(ty<handPos().y-30){ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1.5;ctx.setLineDash([3,6]);ctx.beginPath();ctx.moveTo(tx,ty+8);ctx.lineTo(tx,FLOOR);ctx.stroke();ctx.setLineDash([]);
+    ctx.font='800 14px "Baloo 2",sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';const t='▲ '+((FLOOR-ty)/115).toFixed(1).replace('.',',')+' m';
+    ctx.strokeStyle='#1b2440';ctx.lineWidth=4;ctx.lineJoin='round';ctx.strokeText(t,tx,ty-6);ctx.fillStyle='#ffd23f';ctx.fillText(t,tx,ty-6)}
+  P.pts.forEach(([x,y],i)=>{
+    const k=(i+1-fase)%4<1?1:0,r=(i%2?3.2:4.6)+k*1.2;   // un brillo que recorre la curva
+    ctx.fillStyle='rgba(27,36,64,.45)';ctx.beginPath();ctx.arc(x+1,y+1.5,r,0,7);ctx.fill();
+    ctx.fillStyle=k?'#ffd23f':'rgba(255,255,255,.95)';ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()});
+  // final del vuelo: una cruz donde toca el suelo, o una estrellita si choca con algo
+  if(P.fin!=='fuera'){ctx.translate(P.x,P.y);ctx.strokeStyle='#1b2440';ctx.lineWidth=5;ctx.lineCap='round';
+    if(P.fin==='suelo'){ctx.beginPath();ctx.moveTo(-7,-7);ctx.lineTo(7,7);ctx.moveTo(7,-7);ctx.lineTo(-7,7);ctx.stroke();ctx.strokeStyle='#ffd23f';ctx.lineWidth=2.5;ctx.stroke()}
+    else{ctx.fillStyle='#ffd23f';ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<10;i++){const r=i%2?4:10,a=i*Math.PI/5-Math.PI/2;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.stroke()}}
+  ctx.restore();
+}
 function drawAim(){
   const h=handPos(),a=S.angle*Math.PI/180,v=speed(S.force);
   ctx.save();ctx.lineCap='round';
@@ -1100,10 +1136,7 @@ function drawAim(){
   ctx.fillStyle='rgba(255,210,63,.28)';ctx.beginPath();ctx.moveTo(h.x,h.y);ctx.arc(h.x,h.y,40,-a,0);ctx.closePath();ctx.fill();
   ctx.strokeStyle='#ffd23f';ctx.lineWidth=2;ctx.beginPath();ctx.arc(h.x,h.y,40,-a,0);ctx.stroke();
   ctx.font='800 14px "Baloo 2",sans-serif';ctx.fillStyle='#ffd23f';ctx.fillText(S.angle+'°',h.x+30*Math.cos(a/2)+16,h.y-30*Math.sin(a/2)+2);
-  // trayectoria prevista (solo el principio: el resto lo calcula Gabi)
-  let x=h.x,y=h.y,vx=v*Math.cos(a),vy=-v*Math.sin(a);const dt=.03;
-  for(let i=1;i<=13;i++){vy+=G*dt;vx+=(S.wind||0)*dt;x+=vx*dt;y+=vy*dt;
-    ctx.fillStyle=`rgba(255,255,255,${.9-i*.06})`;ctx.beginPath();ctx.arc(x,y,3.2-i*.15,0,7);ctx.fill()}
+  drawParabola();
   // flecha de la velocidad
   const L=30+S.force*.9,ex=h.x+L*Math.cos(a),ey=h.y-L*Math.sin(a);
   ctx.strokeStyle='#1b2440';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(h.x,h.y);ctx.lineTo(ex,ey);ctx.stroke();
@@ -1294,16 +1327,27 @@ cv.addEventListener('pointermove',e=>{
 });
 cv.addEventListener('pointerup',()=>{if(!S.drag)return;const d=S.drag;S.drag=null;if(d.len>=20)shoot()});
 cv.addEventListener('pointercancel',()=>{S.drag=null});
+const REDUCIR=(()=>{try{return matchMedia("(prefers-reduced-motion: reduce)").matches}catch(e){return false}})();
 // goma estirada, balón fantasma y números mientras estira
 function drawDrag(){
   const d=S.drag;if(!d||d.len<12)return;
   // la goma sale del balón que sujeta con las manos y se estira hacia atrás
-  const h=handPos(),a=S.angle*Math.PI/180,pull=Math.min(120,30+S.force*.9);
-  const px=h.x-Math.cos(a)*pull,py=Math.min(FLOOR-R,h.y+Math.sin(a)*pull);
+  const h=handPos(),a=S.angle*Math.PI/180,f=S.force/100,pull=22+f*108;
+  const tiembla=f>.92&&!REDUCIR?(Math.random()-.5)*2.5:0;
+  const px=h.x-Math.cos(a)*pull+tiembla,py=Math.min(FLOOR-R,h.y+Math.sin(a)*pull)+tiembla;
   ctx.save();ctx.lineCap='round';
-  ctx.strokeStyle='#5a2a08';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(h.x-10,h.y-6);ctx.lineTo(px,py);ctx.lineTo(h.x+10,h.y+6);ctx.stroke();
-  ctx.strokeStyle='#c2410c';ctx.lineWidth=3;ctx.stroke();
-  ctx.globalAlpha=.85;drawBall(px,py,0);ctx.globalAlpha=1;
+  // dos gomas que salen de las manos y se estiran (más finas y más rojas cuanto más tensas)
+  const col=`rgb(${Math.round(150+f*80)},${Math.round(70-f*40)},${Math.round(20)})`,gr=7-f*3.5;
+  const goma=(ax,ay)=>{ctx.strokeStyle='#3a1a05';ctx.lineWidth=gr+2.5;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(px-Math.cos(a)*R*.7,py+Math.sin(a)*R*.7);ctx.stroke();
+    ctx.strokeStyle=col;ctx.lineWidth=gr;ctx.stroke()};
+  goma(h.x+12,h.y+7);                                   // la de atrás, por detrás del balón
+  ctx.globalAlpha=.95;drawBall(px,py,-pull/20);ctx.globalAlpha=1;
+  // badana de cuero que sujeta el balón
+  ctx.save();ctx.translate(px,py);ctx.rotate(-a);ctx.fillStyle='#5a2a08';ctx.beginPath();ctx.ellipse(-R*.75,0,5,R*.95,0,0,7);ctx.fill();ctx.restore();
+  goma(h.x-12,h.y-5);
+  // marcador de fuerza alrededor del balón
+  ctx.strokeStyle='rgba(27,36,64,.5)';ctx.lineWidth=5;ctx.beginPath();ctx.arc(px,py,R+9,0,7);ctx.stroke();
+  ctx.strokeStyle=f>.85?'#e04848':f>.5?'#ffd23f':'#4ade80';ctx.lineWidth=4;ctx.beginPath();ctx.arc(px,py,R+9,-Math.PI/2,-Math.PI/2+f*Math.PI*2);ctx.stroke();
   const label=`${S.angle}° · ${S.force}`;ctx.font='800 24px "Baloo 2",sans-serif';const w=ctx.measureText(label).width+22;
   const lx=Math.max(w/2+6,Math.min(W-w/2-6,h.x+30)),ly=Math.max(24,h.y-98);
   ctx.fillStyle='#1b2440';roundRect(lx-w/2,ly-18,w,34,17);ctx.fill();ctx.fillStyle='#ffd23f';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,lx,ly);
@@ -1356,6 +1400,7 @@ const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v)
 const VERSION=(document.querySelector('meta[name="app-version"]')||{}).content||'dev';
 // Lo que trae cada versión, contado para Gabi (lo más nuevo, arriba)
 const NOVEDADES=[
+  ['1.2',['🎯 Al estirar ves la parábola entera, con puntitos, hasta dónde cae el balón','▲ Y te dice la altura máxima que va a alcanzar','🏹 El balón se estira con la goma como en un tirachinas, y se pone rojo y tiembla si tiras muy fuerte']],
   ['1.1',['📲 Ya puedes ponerlo en la pantalla de inicio del iPad o del móvil, con su propio icono','📶 Funciona sin internet','🔄 Se actualiza solo y te cuenta las novedades, ¡como ahora!','⚙️ Nuevo botón de Ajustes: sonidos, instalarlo y versión']],
 ];
 const verCmp=(a,b)=>{const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<3;i++){const d=(x[i]||0)-(y[i]||0);if(d)return d}return 0};
