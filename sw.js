@@ -1,0 +1,32 @@
+// Service worker de Los triples de Gabi: permite jugar sin conexión.
+// Al subir una versión nueva, cambia el nombre de la caché y se borra la anterior.
+const CACHE = "triples-gabi-1.1";
+const PRECACHE = ["./", "index.html", "manifest.webmanifest", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "icon-152.png", "icon-167.png", "icon-maskable-512.png", "favicon-32.png", "sonidos/aplauso.mp3", "sonidos/ooh.mp3",
+  "sprites/a00.webp","sprites/a01.webp","sprites/a02.webp","sprites/a03.webp","sprites/a12.webp","sprites/a13.webp","sprites/a20.webp","sprites/a21.webp","sprites/a22.webp","sprites/a23.webp","sprites/a30.webp","sprites/a31.webp","sprites/a32.webp","sprites/aro-fondo.webp","sprites/b00.webp","sprites/b01.webp","sprites/b02.webp","sprites/b03.webp","sprites/b10.webp","sprites/b11.webp","sprites/b12.webp","sprites/b13.webp","sprites/b20.webp","sprites/b21.webp","sprites/b22.webp","sprites/b23.webp","sprites/b30.webp","sprites/b31.webp","sprites/b32.webp","sprites/b33.webp","sprites/bal0.webp","sprites/bal1.webp","sprites/bal2.webp","sprites/bal3.webp","sprites/c00.webp","sprites/c01.webp","sprites/c02.webp","sprites/c03.webp","sprites/c10.webp","sprites/c11.webp","sprites/c12.webp","sprites/c13.webp","sprites/d00.webp","sprites/d01.webp","sprites/d02.webp","sprites/d03.webp","sprites/d10.webp","sprites/d11.webp","sprites/d12.webp","sprites/d13.webp","sprites/d20.webp","sprites/d21.webp","sprites/d22.webp","sprites/d23.webp","sprites/e00.webp","sprites/e01.webp","sprites/e02.webp","sprites/e03.webp","sprites/e10.webp","sprites/e11.webp","sprites/e12.webp","sprites/e13.webp","sprites/f00.webp","sprites/f01.webp","sprites/f02.webp","sprites/f03.webp","sprites/f30.webp","sprites/f31.webp","sprites/f32.webp","sprites/f33.webp","sprites/g00.webp","sprites/g01.webp","sprites/g02.webp","sprites/g03.webp","sprites/g10.webp","sprites/g11.webp","sprites/g12.webp","sprites/g13.webp","sprites/g20.webp","sprites/g21.webp","sprites/g22.webp","sprites/g23.webp","sprites/g30.webp","sprites/g31.webp","sprites/g32.webp","sprites/g33.webp","sprites/k00.webp","sprites/k01.webp","sprites/k02.webp","sprites/k03.webp","sprites/k10.webp","sprites/k11.webp","sprites/k12.webp","sprites/k13.webp","sprites/k20.webp","sprites/k21.webp","sprites/k22.webp","sprites/k23.webp","sprites/m00.webp","sprites/m01.webp","sprites/m02.webp","sprites/m03.webp","sprites/m10.webp","sprites/m11.webp","sprites/m12.webp","sprites/m13.webp","sprites/m20.webp","sprites/m21.webp","sprites/m22.webp","sprites/m23.webp","sprites/m30.webp","sprites/m31.webp","sprites/m32.webp","sprites/m33.webp","sprites/p00.webp","sprites/p01.webp","sprites/p02.webp","sprites/p03.webp","sprites/p10.webp","sprites/p11.webp","sprites/p12.webp","sprites/p13.webp","sprites/p20.webp","sprites/p21.webp","sprites/p22.webp","sprites/p23.webp","sprites/p30.webp","sprites/p31.webp","sprites/p32.webp","sprites/p33.webp","sprites/q00.webp","sprites/q01.webp","sprites/q02.webp","sprites/q03.webp","sprites/q10.webp","sprites/q11.webp","sprites/q12.webp","sprites/q13.webp","sprites/q20.webp","sprites/q21.webp","sprites/q22.webp","sprites/q23.webp","sprites/q30.webp","sprites/q31.webp","sprites/q32.webp","sprites/q33.webp","sprites/r00.webp","sprites/r01.webp","sprites/r02.webp","sprites/r03.webp","sprites/r10.webp","sprites/r11.webp","sprites/r12.webp","sprites/r13.webp","sprites/r20.webp","sprites/r21.webp","sprites/r22.webp","sprites/r23.webp","sprites/r30.webp","sprites/r31.webp","sprites/r32.webp","sprites/r33.webp","sprites/red0.webp","sprites/red1.webp","sprites/red2.webp","sprites/red3.webp","sprites/red4.webp","sprites/s00.webp","sprites/s01.webp","sprites/s02.webp","sprites/s03.webp","sprites/s10.webp","sprites/s11.webp","sprites/s12.webp","sprites/s13.webp","sprites/t00.webp","sprites/t01.webp","sprites/t02.webp","sprites/t03.webp","sprites/t10.webp","sprites/t11.webp","sprites/t12.webp","sprites/t13.webp","sprites/t20.webp","sprites/t21.webp","sprites/t22.webp","sprites/t23.webp","sprites/w00.webp","sprites/w01.webp","sprites/w02.webp","sprites/w03.webp","sprites/w10.webp","sprites/w11.webp","sprites/w12.webp","sprites/w13.webp","sprites/w20.webp","sprites/w21.webp","sprites/w22.webp","sprites/w23.webp","sprites/w30.webp","sprites/w31.webp","sprites/w32.webp","sprites/w33.webp","sprites/x00.webp","sprites/x01.webp","sprites/x02.webp","sprites/x03.webp","sprites/x10.webp","sprites/x11.webp","sprites/x12.webp","sprites/x13.webp","sprites/x20.webp","sprites/x21.webp","sprites/x22.webp","sprites/x23.webp","sprites/x30.webp","sprites/x31.webp","sprites/x32.webp","sprites/x33.webp","sprites/y00.webp","sprites/y01.webp","sprites/y02.webp","sprites/y03.webp","sprites/y10.webp","sprites/y11.webp","sprites/y12.webp","sprites/y13.webp","sprites/y20.webp","sprites/y21.webp","sprites/y22.webp","sprites/y23.webp","sprites/y30.webp","sprites/y31.webp","sprites/y32.webp","sprites/y33.webp",
+  "https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Orbitron:wght@700;900&display=swap"];
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE).then(c => Promise.all(PRECACHE.map(u =>
+    c.add(new Request(u, { mode: u.startsWith("http") ? "cors" : "same-origin" })).catch(() => {})))));
+  self.skipWaiting();
+});
+self.addEventListener("activate", e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith("triples-gabi-") && k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+self.addEventListener("fetch", e => {
+  const req = e.request, url = new URL(req.url);
+  if (req.method !== "GET") return;
+  // Comprobación de versión nueva: siempre a la red
+  if (url.origin === location.origin && url.searchParams.has("v")) return;
+  // La página: primero la red (lo último) y, sin conexión, la copia guardada
+  if (req.mode === "navigate") {
+    e.respondWith(fetch(req, { cache: "no-store" }).then(r => { const cp = r.clone(); caches.open(CACHE).then(c => c.put("index.html", cp)); return r; })
+      .catch(() => caches.match("index.html").then(r => r || caches.match("./"))));
+    return;
+  }
+  // Lo demás (sprites, sonidos, letras, iconos): primero la copia guardada y, si no está, la red
+  e.respondWith(caches.match(req, { ignoreSearch: url.origin === location.origin }).then(hit => hit || fetch(req).then(r => {
+    if (r && (r.ok || r.type === "opaque")) { const cp = r.clone(); caches.open(CACHE).then(c => c.put(req, cp)); }
+    return r;
+  })));
+});
